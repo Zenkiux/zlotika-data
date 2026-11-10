@@ -1,5 +1,7 @@
 # Zlotika collector
 
+Data feed for the **[Zlotika app](https://github.com/Zenkiux/zlotika)**. The code is under the MIT licence. Collected prices and leaflet images belong to the retailers, and Zlotika is not affiliated with them.
+
 Collects publicly visible promotions from Polish retailer websites once a day and writes `out/deals.json` (the app's Deals feed) plus `out/config.json` (the remote off switch).
 
 ## Rules this collector follows
