@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import type { Deal, Source } from './types.ts';
 import { sources } from './sources/index.ts';
+import { closeOcr } from './ocr.ts';
+import { listBiedronka, listKaufland, listLidl, type Leaflet } from './leaflets.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
 const outDir = new URL('../out/', import.meta.url);
@@ -13,6 +15,12 @@ const prev: { deals: Deal[] } = existsSync(prevPath) ? JSON.parse(readFileSync(p
 const clean = (d: Deal): Deal | null => {
   const name = d.name?.replace(/\s+/g, ' ').replace(/^[\s\-–—·,.]+/, '').trim();
   if (!name || !(d.price > 0) || d.price > 20000) return null;
+  // Leaflet-read names must look like a product: ≥ 2 words or one long word, ≥ 8 letters.
+  if (d.ocr) {
+    const letters = name.replace(/[^A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]/g, '').length;
+    const words = name.split(/\s+/).filter((w) => /[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]{3}/.test(w));
+    if (letters < 8 || (words.length < 2 && letters < 9)) return null;
+  }
   const round = (x?: number) => (x == null || !isFinite(x) ? undefined : Math.round(x * 100) / 100);
   return { ...d, name, price: round(d.price)!, oldPrice: d.oldPrice && d.oldPrice > d.price ? round(d.oldPrice) : undefined, unitPrice: round(d.unitPrice) };
 };
@@ -37,6 +45,25 @@ for (const s of sources.filter((x: Source) => !only || x.chain === only)) {
   }
 }
 
+await closeOcr();
+
+// Leaflets for the in-app reader (images stay on the retailers' servers).
+const leaflets: Leaflet[] = [];
+const prevLeafPath = new URL('leaflets.json', outDir);
+const prevLeaf: { leaflets: Leaflet[] } = existsSync(prevLeafPath) ? JSON.parse(readFileSync(prevLeafPath, 'utf8')) : { leaflets: [] };
+for (const [chain, list] of [['biedronka', listBiedronka], ['kaufland', listKaufland], ['lidl', listLidl]] as const) {
+  if (only && only !== chain && only !== 'leaflets') continue;
+  try {
+    const ls = await list();
+    leaflets.push(...ls);
+    console.log(`✓ leaflets ${chain}: ${ls.length} (${ls.reduce((a, l) => a + l.pages.length, 0)} pages)`);
+  } catch (e) {
+    const kept = prevLeaf.leaflets.filter((l) => l.chain === chain);
+    leaflets.push(...kept);
+    console.log(`✗ leaflets ${chain}: ${(e as Error).message} (kept ${kept.length})`);
+  }
+}
+writeFileSync(prevLeafPath, JSON.stringify({ generatedAt: new Date().toISOString(), leaflets }));
 const today = new Date().toISOString().slice(0, 10);
 const live = results.filter((d) => !d.validTo || d.validTo >= today);
 writeFileSync(new URL('deals.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), sources: statuses, deals: live }));

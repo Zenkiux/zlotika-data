@@ -13,16 +13,22 @@ concurrency: { group: pages, cancel-in-progress: false }
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     environment: { name: github-pages, url: '${{ steps.deploy.outputs.page_url }}' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '24' }
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      # Tesseract language data, cached between runs.
+      - uses: actions/cache@v4
+        with: { path: .tessdata, key: tessdata-pol-v1 }
       # Start from yesterday's published feed so a failing source keeps its last data.
       - name: Fetch previous feed
         run: |
           mkdir -p out
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deals.json" -o out/deals.json || true
+          curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/leaflets.json" -o out/leaflets.json || true
           cp config.json out/config.json   # the off switch: edit config.json in the repo
       - run: node --max-http-header-size=131072 src/run.ts
       - uses: actions/upload-pages-artifact@v3

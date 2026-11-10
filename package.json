@@ -3,9 +3,15 @@
   "private": true,
   "type": "module",
   "description": "Daily collector of publicly visible Polish retail promotions for the Zlotika app.",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "collect": "node --max-http-header-size=131072 src/run.ts",
     "one": "node --max-http-header-size=131072 src/run.ts --only"
+  },
+  "dependencies": {
+    "sharp": "^0.34.5",
+    "tesseract.js": "^6.0.1"
   }
 }

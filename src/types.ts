@@ -16,9 +16,14 @@ export interface Deal {
   imageUrl?: string;
   url?: string;
   category?: string;
+  ocr?: boolean; // read from a leaflet image (less certain)
+  leaflet?: string; // id in leaflets.json
+  page?: number; // leaflet page number
 }
 
 export interface Source {
   chain: string;
   collect(): Promise<Deal[]>;
 }
+
+export type { Leaflet } from './leaflets.ts';

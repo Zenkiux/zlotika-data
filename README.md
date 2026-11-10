@@ -15,8 +15,12 @@ Collects publicly visible promotions from Polish retailer websites once a day an
 | Rossmann | `rossmann.pl/products/v3/api/Products?Statuses=promotion` (first 8 pages) | ~770 |
 | Lidl | `lidl.pl/h/...` category pages (`data-grid-data`), including Lidl Plus conditions | ~220 valid |
 
+| Kaufland | Schwarz leaflet platform (kaufland.pl itself blocks bots and is never fetched) → **OCR** of page images | ~200 |
+| Biedronka | biedronka.pl leaflet API → **OCR** of page images | varies |
+
+**Leaflets:** `out/leaflets.json` lists the current Biedronka, Kaufland and Lidl leaflets, with page image URLs on the retailers' own servers, for the in-app reader. OCR deals carry `ocr: true` plus the leaflet and page, so the app shows the source page next to every automatically read price.
+
 Not collected yet:
-- **Biedronka:** leaflet images only, so it needs OCR.
 - **Dino, Netto:** no shop in Suwałki.
 
 ## Run
@@ -29,7 +33,7 @@ Node 24 or newer, with no dependencies. `--max-http-header-size` is raised becau
 ## Turning things off
 Edit `config.json` and push. The app picks it up on its next refresh:
 ```json
-{ "collectedEnabled": false, "disabledChains": ["lidl"] }
+{ "collectedEnabled": false, "leafletsEnabled": false, "disabledChains": ["lidl"] }
 ```
 
 ## Schedule
