@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import type { Deal, Source } from './types.ts';
 import { sources } from './sources/index.ts';
 import { closeOcr } from './ocr.ts';
+import { collectFuel, type FuelFeed } from './fuel.ts';
 import { listBiedronka, listKaufland, listLidl, type Leaflet } from './leaflets.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
@@ -27,7 +28,7 @@ const clean = (d: Deal): Deal | null => {
 
 const results: Deal[] = [];
 const statuses: { chain: string; ok: boolean; count: number; fetchedAt: string; error?: string }[] = [];
-for (const s of sources.filter((x: Source) => !only || x.chain === only)) {
+for (const s of sources.filter((x: Source) => only !== 'fuel' && (!only || x.chain === only))) {
   const t0 = Date.now();
   try {
     const raw = await s.collect();
@@ -63,6 +64,14 @@ for (const [chain, list] of [['biedronka', listBiedronka], ['kaufland', listKauf
     console.log(`✗ leaflets ${chain}: ${(e as Error).message} (kept ${kept.length})`);
   }
 }
+// Fuel prices (weekly public averages) for the trip calculator.
+const fuelPath = new URL('fuel.json', outDir);
+if (!only || only === 'fuel') {
+  const prevFuel: FuelFeed | undefined = existsSync(fuelPath) ? JSON.parse(readFileSync(fuelPath, 'utf8')) : undefined;
+  writeFileSync(fuelPath, JSON.stringify(await collectFuel(prevFuel)));
+}
+if (only === 'fuel') process.exit(0);
+
 writeFileSync(prevLeafPath, JSON.stringify({ generatedAt: new Date().toISOString(), leaflets }));
 const today = new Date().toISOString().slice(0, 10);
 const live = results.filter((d) => !d.validTo || d.validTo >= today);
