@@ -4,7 +4,9 @@
 import json, sys, time
 from paddleocr import PaddleOCR
 
-ocr = PaddleOCR(lang='pl', use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False,
+# enable_mkldnn=False: PaddlePaddle 3.3's oneDNN path crashes on x86 runners
+# ("ConvertPirAttribute2RuntimeAttribute not support").
+ocr = PaddleOCR(lang='pl', enable_mkldnn=False, use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False,
                 text_detection_model_name='PP-OCRv5_mobile_det')
 for path in sys.argv[1:]:
     t = time.time()
