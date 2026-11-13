@@ -34,23 +34,28 @@ const MAX_NEW = Number(process.env.VISION_MAX ?? 220);
 let fresh = 0;
 export const visionEnabled = () => KEY.length > 0 && !quotaHit && fresh < MAX_NEW;
 let quotaHit = false;
-let model: string | null = null;
+// Free-tier limits are per model, so keep a ranked list and move down it when a model is
+// overloaded (503) or out of quota (429). Flash-Lite first: faster, less congested, higher
+// free daily limits, and plenty for reading a leaflet page.
+let models: string[] | null = null;
+const dead = new Set<string>();
 
-/** Picks the newest "flash" model that takes images, unless GEMINI_MODEL says otherwise. */
-async function pickModel(): Promise<string> {
-  if (model) return model;
-  if (process.env.GEMINI_MODEL) return (model = process.env.GEMINI_MODEL);
+async function modelList(): Promise<string[]> {
+  if (models) return models;
+  if (process.env.GEMINI_MODEL) return (models = process.env.GEMINI_MODEL.split(',').map((m) => (m.startsWith('models/') ? m : `models/${m}`)));
   const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': KEY } });
   if (!res.ok) throw new Error(`model list HTTP ${res.status}`);
   const list = ((await res.json()) as any).models as { name: string; supportedGenerationMethods?: string[] }[];
   const ok = list
     .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
     .map((m) => m.name)
-    .filter((n) => /flash/.test(n) && !/lite|image|tts|audio|live|preview|exp|thinking|embedding/.test(n));
+    .filter((n) => /flash/.test(n) && !/image|tts|audio|live|preview|exp|thinking|embedding/.test(n));
   const ver = (n: string) => Number(n.match(/(\d+(?:\.\d+)?)/)?.[1] ?? 0);
-  ok.sort((a, b) => ver(b) - ver(a) || a.length - b.length);
+  const lite = (n: string) => (/lite/.test(n) ? 1 : 0);
+  ok.sort((a, b) => lite(b) - lite(a) || ver(b) - ver(a) || a.length - b.length);
   if (!ok.length) throw new Error('no suitable Gemini model');
-  return (model = ok[0]);
+  console.log(`  vision models: ${ok.slice(0, 5).map((m) => m.replace('models/', '')).join(', ')}`);
+  return (models = ok);
 }
 
 const PROMPT = `This is one page of a Polish supermarket leaflet (gazetka). List every product that has a price printed for it.
@@ -82,34 +87,52 @@ let last = 0;
 export async function readPageVision(image: string): Promise<VisionItem[] | null> {
   if (cache[image]) return cache[image].items;
   if (!visionEnabled()) return null;
-  const m = await pickModel();
   const png = Buffer.from(await (await get(image, { accept: 'image/*' })).arrayBuffer());
   const jpg = await sharp(png).resize({ width: 1100, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
-  // Free tier: stay well under the per-minute limit.
-  const wait = Math.max(0, last + 6500 - Date.now());
-  if (wait) await new Promise((r) => setTimeout(r, wait));
-  last = Date.now();
-  fresh++;
-  const res = await fetch(`${API}/${m}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: 'image/jpeg', data: jpg.toString('base64') } }] }],
-      generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA },
-    }),
-    signal: AbortSignal.timeout(90000),
+  const payload = JSON.stringify({
+    contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: 'image/jpeg', data: jpg.toString('base64') } }] }],
+    generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: SCHEMA },
   });
-  if (res.status === 429 || res.status === 403) {
-    quotaHit = true;
-    console.log(`  vision: ${res.status} — free quota used up, falling back to OCR`);
-    return null;
+  for (const m of await modelList()) {
+    if (dead.has(m)) continue;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      // Free tier: stay well under the per-minute limit.
+      const wait = Math.max(0, last + 6500 - Date.now()) + attempt * 15000;
+      if (wait) await new Promise((r) => setTimeout(r, wait));
+      last = Date.now();
+      fresh++;
+      let res: Response;
+      try {
+        res = await fetch(`${API}/${m}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
+          body: payload,
+          signal: AbortSignal.timeout(120000),
+        });
+      } catch {
+        continue; // timeout: retry once, then next model
+      }
+      if (res.status === 429) {
+        console.log(`  vision: ${m.replace('models/', '')} free quota used up, trying the next model`);
+        dead.add(m);
+        break;
+      }
+      if (res.status === 503 || res.status === 500) continue;
+      if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const body: any = await res.json();
+      const text = body.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '[]';
+      const items = toItems(JSON.parse(text));
+      cache[image] = { model: m, at: new Date().toISOString(), items };
+      return items;
+    }
+    // Overloaded or too slow twice in a row: try the next model for the rest of this run.
+    if (!dead.has(m)) {
+      dead.add(m);
+      console.log(`  vision: ${m.replace('models/', '')} busy, trying the next model`);
+    }
   }
-  if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const body: any = await res.json();
-  const text = body.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '[]';
-  const items = toItems(JSON.parse(text));
-  cache[image] = { model: m, at: new Date().toISOString(), items };
-  return items;
+  if (models && models.every((m) => dead.has(m))) quotaHit = true;
+  return null; // this page falls back to OCR
 }
 
 const n = (v: unknown) => (typeof v === 'number' && isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : undefined);
