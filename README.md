@@ -37,6 +37,14 @@ Collects publicly visible promotions from Polish retailer websites once a day an
 Not collected yet:
 - **Dino, Netto:** no shop in Suwałki.
 
+## Your own copy: bring your own free key
+The leaflet reader works best with a vision-model key. Each copy of this collector uses **its own** key; none is shared or included here.
+1. Create a free key at https://aistudio.google.com/apikey (Google account, no card).
+2. In your fork: Settings → Secrets and variables → Actions → New repository secret, name `GEMINI_API_KEY`. Or: `gh secret set GEMINI_API_KEY --repo <you>/<your-fork>`.
+3. Without a key, everything still runs; leaflets are read with PaddleOCR and Tesseract instead (fewer, less accurate prices).
+
+The key is only used server-side by GitHub Actions. The app never receives it.
+
 ## Run
 ```bash
 npm run collect          # all sources
