@@ -3,6 +3,8 @@ import type { Deal, Source } from './types.ts';
 import { sources } from './sources/index.ts';
 import { closeOcr } from './ocr.ts';
 import { collectFuel, type FuelFeed } from './fuel.ts';
+import { collectStores, addChainHours } from './stores.ts';
+import { collectLtPrices, collectPlPrices, sane } from './prices.ts';
 import { listBiedronka, listKaufland, listLidl, type Leaflet } from './leaflets.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
@@ -28,7 +30,7 @@ const clean = (d: Deal): Deal | null => {
 
 const results: Deal[] = [];
 const statuses: { chain: string; ok: boolean; count: number; fetchedAt: string; error?: string }[] = [];
-for (const s of sources.filter((x: Source) => only !== 'fuel' && (!only || x.chain === only))) {
+for (const s of sources.filter((x: Source) => only !== 'fuel' && only !== 'stores' && only !== 'prices' && only !== 'prices-pl' && (!only || x.chain === only))) {
   const t0 = Date.now();
   try {
     const raw = await s.collect();
@@ -70,7 +72,40 @@ if (!only || only === 'fuel') {
   const prevFuel: FuelFeed | undefined = existsSync(fuelPath) ? JSON.parse(readFileSync(fuelPath, 'utf8')) : undefined;
   writeFileSync(fuelPath, JSON.stringify(await collectFuel(prevFuel)));
 }
-if (only === 'fuel') process.exit(0);
+// Shop locations + opening hours from OpenStreetMap (keeps last good file on failure).
+if (!only || only === 'stores') {
+  try {
+    const stores = await collectStores();
+    await addChainHours(stores);
+    writeFileSync(new URL('stores.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), attribution: '© OpenStreetMap contributors (ODbL)', stores }));
+    console.log(`✓ stores: ${stores.length}`);
+  } catch (e) {
+    console.log(`✗ stores: ${(e as Error).message} (kept last file)`);
+  }
+}
+// Reference shelf prices (LT: Barbora; PL: Rossmann, Frisco if enabled). Keeps the last
+// good values per side when a source fails.
+if (!only || only === 'prices' || only === 'prices-pl') {
+  const path = new URL('prices.json', outDir);
+  const prevP = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : { lt: {}, pl: {} };
+  const cfgP = JSON.parse(readFileSync(new URL('../config.json', import.meta.url), 'utf8'));
+  let lt = prevP.lt, pl = prevP.pl;
+  if (only !== 'prices-pl') try {
+    if (cfgP.priceSources?.barbora === false) throw new Error('switched off in config.json');
+    lt = await collectLtPrices();
+    console.log(`✓ LT prices: ${Object.keys(lt).length}`);
+  } catch (e) {
+    console.log(`✗ LT prices: ${(e as Error).message} (kept ${Object.keys(lt).length})`);
+  }
+  try {
+    pl = sane(await collectPlPrices({ frisco: cfgP.priceSources?.frisco === true, rossmann: cfgP.priceSources?.rossmann !== false }), lt);
+    console.log(`✓ PL prices: ${Object.keys(pl).length}`);
+  } catch (e) {
+    console.log(`✗ PL prices: ${(e as Error).message} (kept ${Object.keys(pl).length})`);
+  }
+  writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), lt, pl }));
+}
+if (only === 'fuel' || only === 'stores' || only?.startsWith('prices')) process.exit(0);
 
 writeFileSync(prevLeafPath, JSON.stringify({ generatedAt: new Date().toISOString(), leaflets }));
 const today = new Date().toISOString().slice(0, 10);

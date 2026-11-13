@@ -1,1 +1,1 @@
-{ "collectedEnabled": true, "leafletsEnabled": true, "disabledChains": [] }
+{"collectedEnabled": true, "leafletsEnabled": true, "disabledChains": [], "priceSources": {"barbora": true, "rossmann": true, "frisco": false}}

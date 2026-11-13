@@ -16,11 +16,17 @@ Collects publicly visible promotions from Polish retailer websites once a day an
 | Aldi | `aldi.pl/oferty` and next week (Next.js data) | ~60 |
 | Rossmann | `rossmann.pl/products/v3/api/Products?Statuses=promotion` (first 8 pages) | ~770 |
 | Lidl | `lidl.pl/h/...` category pages (`data-grid-data`), including Lidl Plus conditions | ~220 valid |
-
 | Kaufland | Schwarz leaflet platform (kaufland.pl itself blocks bots and is never fetched) → **OCR** of page images | ~200 |
 | Biedronka | biedronka.pl leaflet API → **OCR** of page images | varies |
 
 **Leaflets:** `out/leaflets.json` lists the current Biedronka, Kaufland and Lidl leaflets, with page image URLs on the retailers' own servers, for the in-app reader. OCR deals carry `ocr: true` plus the leaflet and page, so the app shows the source page next to every automatically read price.
+
+**Reference prices** (`out/prices.json`, `src/prices.ts`): usual prices per kg, litre or piece for the app's item vocabulary (`src/terms.json`).
+- Lithuania: Barbora.lt search pages (robots.txt allows search).
+- Poland: Rossmann.pl product search (regular, non-promo prices).
+- Frisco.pl: built but **off** (`priceSources.frisco: false`), because its robots.txt offers the feed for personal, non-commercial use.
+
+**Shops and hours** (`out/stores.json`, `src/stores.ts`): shops near the border from OpenStreetMap (ODbL), with hours replaced by the chains' own store locators where a shop matches (`src/locators/`: Lidl, Aldi, Rossmann, Pepco, Dino, Netto). Biedronka blocks automated access, so its shops keep OpenStreetMap hours or a chain-typical estimate.
 
 Not collected yet:
 - **Dino, Netto:** no shop in Suwałki.
@@ -30,12 +36,13 @@ Not collected yet:
 npm run collect          # all sources
 npm run one -- lidl      # one source
 ```
-Node 24 or newer, with no dependencies. `--max-http-header-size` is raised because Lidl sends very large response headers.
+Node 24 or newer, with `sharp` and `tesseract.js` for leaflet OCR. `--max-http-header-size` is raised because Lidl sends very large response headers.
 
 ## Turning things off
 Edit `config.json` and push. The app picks it up on its next refresh:
 ```json
-{ "collectedEnabled": false, "leafletsEnabled": false, "disabledChains": ["lidl"] }
+{ "collectedEnabled": false, "leafletsEnabled": false, "disabledChains": ["lidl"],
+  "priceSources": { "barbora": false, "rossmann": false, "frisco": false } }
 ```
 
 ## Schedule

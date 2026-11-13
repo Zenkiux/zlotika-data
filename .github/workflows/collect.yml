@@ -1,4 +1,4 @@
-# Runs the collector once a day and publishes out/ (deals.json + config.json)
+# Runs the collector once a day and publishes out/ (deals, leaflets, fuel, stores + config.json)
 # to GitHub Pages, where the app reads it. Free on GitHub; no secrets needed.
 name: collect
 on:
@@ -30,6 +30,8 @@ jobs:
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/deals.json" -o out/deals.json || true
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/leaflets.json" -o out/leaflets.json || true
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/fuel.json" -o out/fuel.json || true
+          curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/stores.json" -o out/stores.json || true
+          curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/prices.json" -o out/prices.json || true
           cp config.json out/config.json   # the off switch: edit config.json in the repo
       - run: node --max-http-header-size=131072 src/run.ts
       - uses: actions/upload-pages-artifact@v3

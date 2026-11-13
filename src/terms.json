@@ -1,0 +1,758 @@
+[
+{
+"lt": "Vištienos krūtinėlė",
+"en": "Chicken breast",
+"pl": "Filet z piersi kurczaka",
+"cat": "meat"
+},
+{
+"lt": "Vištienos šlaunelės",
+"en": "Chicken thighs",
+"pl": "Udka z kurczaka",
+"cat": "meat"
+},
+{
+"lt": "Vištienos sparneliai",
+"en": "Chicken wings",
+"pl": "Skrzydełka z kurczaka",
+"cat": "meat"
+},
+{
+"lt": "Kiaulienos sprandinė",
+"en": "Pork neck",
+"pl": "Karkówka wieprzowa",
+"cat": "meat"
+},
+{
+"lt": "Kiaulienos nugarinė",
+"en": "Pork loin",
+"pl": "Schab wieprzowy",
+"cat": "meat"
+},
+{
+"lt": "Kiaulienos šoninė",
+"en": "Pork belly",
+"pl": "Boczek wieprzowy",
+"cat": "meat"
+},
+{
+"lt": "Kiaulienos šonkauliai",
+"en": "Pork ribs",
+"pl": "Żeberka wieprzowe",
+"cat": "meat"
+},
+{
+"lt": "Malta mėsa",
+"en": "Minced meat",
+"pl": "Mięso mielone",
+"cat": "meat"
+},
+{
+"lt": "Jautiena",
+"en": "Beef",
+"pl": "Wołowina",
+"cat": "meat"
+},
+{
+"lt": "Kalakutiena",
+"en": "Turkey",
+"pl": "Indyk",
+"cat": "meat"
+},
+{
+"lt": "Dešrelės",
+"en": "Sausages (frankfurters)",
+"pl": "Parówki",
+"cat": "meat"
+},
+{
+"lt": "Dešra",
+"en": "Sausage",
+"pl": "Kiełbasa",
+"cat": "meat"
+},
+{
+"lt": "Rūkyta dešra",
+"en": "Smoked sausage",
+"pl": "Kiełbasa wędzona",
+"cat": "meat"
+},
+{
+"lt": "Kumpis",
+"en": "Ham",
+"pl": "Szynka",
+"cat": "meat"
+},
+{
+"lt": "Kabanosai",
+"en": "Kabanos sticks",
+"pl": "Kabanosy",
+"cat": "meat"
+},
+{
+"lt": "Lašiniai",
+"en": "Salo / pork fat",
+"pl": "Słonina",
+"cat": "meat"
+},
+{
+"lt": "Žuvis",
+"en": "Fish",
+"pl": "Ryba",
+"cat": "meat"
+},
+{
+"lt": "Lašiša",
+"en": "Salmon",
+"pl": "Łosoś",
+"cat": "meat"
+},
+{
+"lt": "Silkė",
+"en": "Herring",
+"pl": "Śledź",
+"cat": "meat"
+},
+{
+"lt": "Pienas",
+"en": "Milk",
+"pl": "Mleko",
+"cat": "dairy"
+},
+{
+"lt": "Sviestas",
+"en": "Butter",
+"pl": "Masło",
+"cat": "dairy"
+},
+{
+"lt": "Grietinė",
+"en": "Sour cream",
+"pl": "Śmietana",
+"cat": "dairy"
+},
+{
+"lt": "Grietinėlė",
+"en": "Cream",
+"pl": "Śmietanka",
+"cat": "dairy"
+},
+{
+"lt": "Varškė",
+"en": "Curd cheese",
+"pl": "Twaróg",
+"cat": "dairy"
+},
+{
+"lt": "Sūris",
+"en": "Cheese",
+"pl": "Ser żółty",
+"cat": "dairy"
+},
+{
+"lt": "Mocarela",
+"en": "Mozzarella",
+"pl": "Mozzarella",
+"cat": "dairy"
+},
+{
+"lt": "Jogurtas",
+"en": "Yoghurt",
+"pl": "Jogurt",
+"cat": "dairy"
+},
+{
+"lt": "Kefyras",
+"en": "Kefir",
+"pl": "Kefir",
+"cat": "dairy"
+},
+{
+"lt": "Kiaušiniai",
+"en": "Eggs",
+"pl": "Jajka",
+"cat": "dairy"
+},
+{
+"lt": "Margarinas",
+"en": "Margarine",
+"pl": "Margaryna",
+"cat": "dairy"
+},
+{
+"lt": "Kava",
+"en": "Coffee",
+"pl": "Kawa",
+"cat": "pantry"
+},
+{
+"lt": "Malta kava",
+"en": "Ground coffee",
+"pl": "Kawa mielona",
+"cat": "pantry"
+},
+{
+"lt": "Kavos pupelės",
+"en": "Coffee beans",
+"pl": "Kawa ziarnista",
+"cat": "pantry"
+},
+{
+"lt": "Tirpi kava",
+"en": "Instant coffee",
+"pl": "Kawa rozpuszczalna",
+"cat": "pantry"
+},
+{
+"lt": "Arbata",
+"en": "Tea",
+"pl": "Herbata",
+"cat": "pantry"
+},
+{
+"lt": "Cukrus",
+"en": "Sugar",
+"pl": "Cukier",
+"cat": "pantry"
+},
+{
+"lt": "Druska",
+"en": "Salt",
+"pl": "Sól",
+"cat": "pantry"
+},
+{
+"lt": "Miltai",
+"en": "Flour",
+"pl": "Mąka",
+"cat": "pantry"
+},
+{
+"lt": "Ryžiai",
+"en": "Rice",
+"pl": "Ryż",
+"cat": "pantry"
+},
+{
+"lt": "Grikiai",
+"en": "Buckwheat",
+"pl": "Kasza gryczana",
+"cat": "pantry"
+},
+{
+"lt": "Makaronai",
+"en": "Pasta",
+"pl": "Makaron",
+"cat": "pantry"
+},
+{
+"lt": "Aliejus",
+"en": "Cooking oil",
+"pl": "Olej",
+"cat": "pantry"
+},
+{
+"lt": "Saulėgrąžų aliejus",
+"en": "Sunflower oil",
+"pl": "Olej słonecznikowy",
+"cat": "pantry"
+},
+{
+"lt": "Alyvuogių aliejus",
+"en": "Olive oil",
+"pl": "Oliwa z oliwek",
+"cat": "pantry"
+},
+{
+"lt": "Majonezas",
+"en": "Mayonnaise",
+"pl": "Majonez",
+"cat": "pantry"
+},
+{
+"lt": "Kečupas",
+"en": "Ketchup",
+"pl": "Keczup",
+"cat": "pantry"
+},
+{
+"lt": "Garstyčios",
+"en": "Mustard",
+"pl": "Musztarda",
+"cat": "pantry"
+},
+{
+"lt": "Šokoladas",
+"en": "Chocolate",
+"pl": "Czekolada",
+"cat": "pantry"
+},
+{
+"lt": "Saldainiai",
+"en": "Sweets",
+"pl": "Cukierki",
+"cat": "pantry"
+},
+{
+"lt": "Sausainiai",
+"en": "Biscuits",
+"pl": "Ciastka",
+"cat": "pantry"
+},
+{
+"lt": "Traškučiai",
+"en": "Crisps",
+"pl": "Chipsy",
+"cat": "pantry"
+},
+{
+"lt": "Riešutai",
+"en": "Nuts",
+"pl": "Orzechy",
+"cat": "pantry"
+},
+{
+"lt": "Konservuoti pomidorai",
+"en": "Tinned tomatoes",
+"pl": "Pomidory w puszce",
+"cat": "pantry"
+},
+{
+"lt": "Uogienė",
+"en": "Jam",
+"pl": "Dżem",
+"cat": "pantry"
+},
+{
+"lt": "Medus",
+"en": "Honey",
+"pl": "Miód",
+"cat": "pantry"
+},
+{
+"lt": "Duona",
+"en": "Bread",
+"pl": "Chleb",
+"cat": "pantry"
+},
+{
+"lt": "Batonas",
+"en": "White loaf",
+"pl": "Bułka / chleb pszenny",
+"cat": "pantry"
+},
+{
+"lt": "Vaisiai",
+"en": "Fruit",
+"pl": "Owoce",
+"cat": "pantry"
+},
+{
+"lt": "Daržovės",
+"en": "Vegetables",
+"pl": "Warzywa",
+"cat": "pantry"
+},
+{
+"lt": "Bulvės",
+"en": "Potatoes",
+"pl": "Ziemniaki",
+"cat": "pantry"
+},
+{
+"lt": "Obuoliai",
+"en": "Apples",
+"pl": "Jabłka",
+"cat": "pantry"
+},
+{
+"lt": "Bananai",
+"en": "Bananas",
+"pl": "Banany",
+"cat": "pantry"
+},
+{
+"lt": "Svogūnai",
+"en": "Onions",
+"pl": "Cebula",
+"cat": "pantry"
+},
+{
+"lt": "Morkos",
+"en": "Carrots",
+"pl": "Marchew",
+"cat": "pantry"
+},
+{
+"lt": "Šaldyti koldūnai",
+"en": "Frozen dumplings",
+"pl": "Pierogi mrożone",
+"cat": "pantry"
+},
+{
+"lt": "Vanduo",
+"en": "Water",
+"pl": "Woda",
+"cat": "drinks"
+},
+{
+"lt": "Gazuotas vanduo",
+"en": "Sparkling water",
+"pl": "Woda gazowana",
+"cat": "drinks"
+},
+{
+"lt": "Negazuotas vanduo",
+"en": "Still water",
+"pl": "Woda niegazowana",
+"cat": "drinks"
+},
+{
+"lt": "Sultys",
+"en": "Juice",
+"pl": "Sok",
+"cat": "drinks"
+},
+{
+"lt": "Gaivusis gėrimas",
+"en": "Soft drink",
+"pl": "Napój gazowany",
+"cat": "drinks"
+},
+{
+"lt": "Alus",
+"en": "Beer",
+"pl": "Piwo",
+"cat": "drinks"
+},
+{
+"lt": "Vynas",
+"en": "Wine",
+"pl": "Wino",
+"cat": "drinks"
+},
+{
+"lt": "Degtinė",
+"en": "Vodka",
+"pl": "Wódka",
+"cat": "drinks"
+},
+{
+"lt": "Dantų pasta",
+"en": "Toothpaste",
+"pl": "Pasta do zębów",
+"cat": "hygiene"
+},
+{
+"lt": "Dantų šepetėlis",
+"en": "Toothbrush",
+"pl": "Szczoteczka do zębów",
+"cat": "hygiene"
+},
+{
+"lt": "Šampūnas",
+"en": "Shampoo",
+"pl": "Szampon",
+"cat": "hygiene"
+},
+{
+"lt": "Plaukų kondicionierius",
+"en": "Conditioner",
+"pl": "Odżywka do włosów",
+"cat": "hygiene"
+},
+{
+"lt": "Dušo želė",
+"en": "Shower gel",
+"pl": "Żel pod prysznic",
+"cat": "hygiene"
+},
+{
+"lt": "Muilas",
+"en": "Soap",
+"pl": "Mydło",
+"cat": "hygiene"
+},
+{
+"lt": "Skystas muilas",
+"en": "Liquid soap",
+"pl": "Mydło w płynie",
+"cat": "hygiene"
+},
+{
+"lt": "Dezodorantas",
+"en": "Deodorant",
+"pl": "Dezodorant",
+"cat": "hygiene"
+},
+{
+"lt": "Higieniniai paketai",
+"en": "Sanitary pads",
+"pl": "Podpaski higieniczne",
+"cat": "hygiene"
+},
+{
+"lt": "Tamponai",
+"en": "Tampons",
+"pl": "Tampony",
+"cat": "hygiene"
+},
+{
+"lt": "Įklotai",
+"en": "Panty liners",
+"pl": "Wkładki higieniczne",
+"cat": "hygiene"
+},
+{
+"lt": "Tualetinis popierius",
+"en": "Toilet paper",
+"pl": "Papier toaletowy",
+"cat": "hygiene"
+},
+{
+"lt": "Popierinės nosinės",
+"en": "Tissues",
+"pl": "Chusteczki higieniczne",
+"cat": "hygiene"
+},
+{
+"lt": "Drėgnos servetėlės",
+"en": "Wet wipes",
+"pl": "Chusteczki nawilżane",
+"cat": "hygiene"
+},
+{
+"lt": "Skutimosi peiliukai",
+"en": "Razors",
+"pl": "Maszynki do golenia",
+"cat": "hygiene"
+},
+{
+"lt": "Skutimosi putos",
+"en": "Shaving foam",
+"pl": "Pianka do golenia",
+"cat": "hygiene"
+},
+{
+"lt": "Veido kremas",
+"en": "Face cream",
+"pl": "Krem do twarzy",
+"cat": "hygiene"
+},
+{
+"lt": "Rankų kremas",
+"en": "Hand cream",
+"pl": "Krem do rąk",
+"cat": "hygiene"
+},
+{
+"lt": "Kūno losjonas",
+"en": "Body lotion",
+"pl": "Balsam do ciała",
+"cat": "hygiene"
+},
+{
+"lt": "Apsauginis kremas nuo saulės",
+"en": "Sunscreen",
+"pl": "Krem z filtrem",
+"cat": "hygiene"
+},
+{
+"lt": "Plaukų dažai",
+"en": "Hair dye",
+"pl": "Farba do włosów",
+"cat": "hygiene"
+},
+{
+"lt": "Makiažo valiklis",
+"en": "Make-up remover",
+"pl": "Płyn do demakijażu",
+"cat": "hygiene"
+},
+{
+"lt": "Vata",
+"en": "Cotton pads",
+"pl": "Płatki kosmetyczne",
+"cat": "hygiene"
+},
+{
+"lt": "Skalbimo milteliai",
+"en": "Washing powder",
+"pl": "Proszek do prania",
+"cat": "household"
+},
+{
+"lt": "Skalbimo kapsulės",
+"en": "Laundry pods",
+"pl": "Kapsułki do prania",
+"cat": "household"
+},
+{
+"lt": "Skalbimo gelis",
+"en": "Laundry gel",
+"pl": "Żel do prania",
+"cat": "household"
+},
+{
+"lt": "Audinių minkštiklis",
+"en": "Fabric softener",
+"pl": "Płyn do płukania",
+"cat": "household"
+},
+{
+"lt": "Indų ploviklis",
+"en": "Washing-up liquid",
+"pl": "Płyn do mycia naczyń",
+"cat": "household"
+},
+{
+"lt": "Indaplovės tabletės",
+"en": "Dishwasher tablets",
+"pl": "Tabletki do zmywarki",
+"cat": "household"
+},
+{
+"lt": "Valymo priemonė",
+"en": "Cleaner",
+"pl": "Środek czyszczący",
+"cat": "household"
+},
+{
+"lt": "Tualeto valiklis",
+"en": "Toilet cleaner",
+"pl": "Żel do WC",
+"cat": "household"
+},
+{
+"lt": "Šiukšlių maišai",
+"en": "Bin bags",
+"pl": "Worki na śmieci",
+"cat": "household"
+},
+{
+"lt": "Popieriniai rankšluosčiai",
+"en": "Paper towels",
+"pl": "Ręczniki papierowe",
+"cat": "household"
+},
+{
+"lt": "Folija",
+"en": "Cling film",
+"pl": "Folia spożywcza",
+"cat": "household"
+},
+{
+"lt": "Baterijos",
+"en": "Batteries",
+"pl": "Baterie",
+"cat": "household"
+},
+{
+"lt": "Kačių maistas",
+"en": "Cat food",
+"pl": "Karma dla kota",
+"cat": "household"
+},
+{
+"lt": "Šunų maistas",
+"en": "Dog food",
+"pl": "Karma dla psa",
+"cat": "household"
+},
+{
+"lt": "Kraikas katėms",
+"en": "Cat litter",
+"pl": "Żwirek dla kota",
+"cat": "household"
+},
+{
+"lt": "Sauskelnės",
+"en": "Nappies",
+"pl": "Pieluchy",
+"cat": "baby"
+},
+{
+"lt": "Sauskelnės-kelnaitės",
+"en": "Nappy pants",
+"pl": "Pieluchomajtki",
+"cat": "baby"
+},
+{
+"lt": "Kūdikių mišinys",
+"en": "Baby formula",
+"pl": "Mleko modyfikowane",
+"cat": "baby"
+},
+{
+"lt": "Kūdikių tyrelė",
+"en": "Baby food jar",
+"pl": "Słoiczek dla dzieci",
+"cat": "baby"
+},
+{
+"lt": "Kūdikių servetėlės",
+"en": "Baby wipes",
+"pl": "Chusteczki dla dzieci",
+"cat": "baby"
+},
+{
+"lt": "Kojinės",
+"en": "Socks",
+"pl": "Skarpety",
+"cat": "other"
+},
+{
+"lt": "Apatiniai",
+"en": "Underwear",
+"pl": "Bielizna",
+"cat": "other"
+},
+{
+"lt": "Marškinėliai",
+"en": "T-shirt",
+"pl": "Koszulka",
+"cat": "other"
+},
+{
+"lt": "Džemperis",
+"en": "Sweatshirt",
+"pl": "Bluza",
+"cat": "other"
+},
+{
+"lt": "Pižama",
+"en": "Pyjamas",
+"pl": "Piżama",
+"cat": "other"
+},
+{
+"lt": "Batai",
+"en": "Shoes",
+"pl": "Buty",
+"cat": "other"
+},
+{
+"lt": "Knyga",
+"en": "Book",
+"pl": "Książka",
+"cat": "other"
+},
+{
+"lt": "Žaislas",
+"en": "Toy",
+"pl": "Zabawka",
+"cat": "other"
+},
+{
+"lt": "Vitaminai",
+"en": "Vitamins",
+"pl": "Witaminy",
+"cat": "other"
+},
+{
+"lt": "Vaistai nuo skausmo",
+"en": "Painkillers",
+"pl": "Leki przeciwbólowe",
+"cat": "other"
+}
+]
