@@ -17,6 +17,10 @@ export interface Deal {
   url?: string;
   category?: string;
   ocr?: boolean; // read from a leaflet image (less certain)
+  vision?: boolean; // read by the vision model rather than plain OCR
+  everyday?: boolean; // marked as the chain's everyday (regular) price
+  crowd?: boolean; // photographed by a shopper (Open Prices)
+  barcode?: string;
   leaflet?: string; // id in leaflets.json
   page?: number; // leaflet page number
 }

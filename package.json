@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "sharp": "^0.34.5",
-    "tesseract.js": "^6.0.1"
+    "tesseract.js": "^6.0.1",
+    "unpdf": "^2.1.0"
   }
 }

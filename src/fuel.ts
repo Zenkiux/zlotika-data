@@ -7,7 +7,9 @@ import { inflateRawSync } from 'node:zlib';
 import { get } from './http.ts';
 
 export type FuelPrice = { pb95?: number; diesel?: number; lpg?: number; currency: 'EUR' | 'PLN'; date: string; source: string; url: string };
-export type FuelFeed = { generatedAt: string; lt?: FuelPrice; pl?: FuelPrice; plRegion?: FuelPrice & { region: string }; plEu?: FuelPrice };
+/** Poland's legal maximum pump price (gross, zł/l), set daily by the Minister of Energy. */
+export type FuelCap = { pb95?: number; pb98?: number; diesel?: number; date: string; source: string; url: string };
+export type FuelFeed = { generatedAt: string; lt?: FuelPrice; pl?: FuelPrice; plRegion?: FuelPrice & { region: string }; plEu?: FuelPrice; plCap?: FuelCap };
 
 const WOB_PAGE = 'https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en';
 const EPETROL = 'https://www.e-petrol.pl/notowania/rynek-krajowy/ceny-stacje-paliw';
@@ -99,7 +101,35 @@ export async function collectEPetrol(): Promise<{ pl: FuelPrice; region?: FuelPr
   return { pl, region };
 }
 
-/** Collects both sources; a failing source keeps last run's values. */
+// ── Poland: legal maximum price (Monitor Polski, via the Sejm ELI open-data API) ─────
+const ELI = 'https://api.sejm.gov.pl/eli';
+
+/** Reads "…wynosi 6,10 zł za 1 l" (the gross figure) for each fuel from the notice text. */
+export function parseCap(text: string): { pb95?: number; pb98?: number; diesel?: number } {
+  const t = text.replace(/\s+/g, ' ');
+  const after = (marker: RegExp) => {
+    const i = t.search(marker);
+    if (i < 0) return undefined;
+    const m = t.slice(i, i + 600).match(/podatek od towarów i usług wynosi (\d+,\d{2}) zł za 1 l/);
+    const v = m ? Number(m[1].replace(',', '.')) : NaN;
+    return v > 3 && v < 15 ? v : undefined;
+  };
+  return { pb95: after(/bezołowiowej 95/), pb98: after(/bezołowiowej 98/), diesel: after(/oleju napędowego/) };
+}
+
+export async function collectPlCap(): Promise<FuelCap> {
+  const list = await (await get(`${ELI}/acts/search?publisher=MP&year=${new Date().getUTCFullYear()}&title=maksymalnej%20ceny%20paliw&sortBy=promulgation&sortDir=desc&limit=3`, { accept: 'application/json' })).json() as any;
+  const act = (list.items ?? []).find((a: any) => /maksymalnej ceny paliw/i.test(a.title));
+  if (!act) throw new Error('no maximum-price notice found');
+  const pdf = new Uint8Array(await (await get(`${ELI}/acts/${act.ELI}/text.pdf`, { accept: 'application/pdf' })).arrayBuffer());
+  const { extractText, getDocumentProxy } = await import('unpdf');
+  const { text } = await extractText(await getDocumentProxy(pdf), { mergePages: true });
+  const cap = parseCap(text as string);
+  if (!cap.pb95 || !cap.diesel) throw new Error('prices not found in notice');
+  return { ...cap, date: act.promulgation, source: 'Minister Energii (Monitor Polski)', url: `https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=${act.address ?? ''}` };
+}
+
+/** Collects all sources; a failing source keeps last run's values. */
 export async function collectFuel(prev?: FuelFeed): Promise<FuelFeed> {
   const feed: FuelFeed = { generatedAt: new Date().toISOString() };
   try {
@@ -121,6 +151,13 @@ export async function collectFuel(prev?: FuelFeed): Promise<FuelFeed> {
     feed.pl = prev?.pl;
     feed.plRegion = prev?.plRegion;
     console.log(`✗ fuel e-petrol: ${(e as Error).message} (kept last)`);
+  }
+  try {
+    feed.plCap = await collectPlCap();
+    console.log(`✓ fuel PL max price ${feed.plCap.date}: Pb95 ${feed.plCap.pb95}, ON ${feed.plCap.diesel} zł`);
+  } catch (e) {
+    feed.plCap = prev?.plCap;
+    console.log(`✗ fuel PL max price: ${(e as Error).message} (kept last)`);
   }
   return feed;
 }

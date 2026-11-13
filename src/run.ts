@@ -5,7 +5,9 @@ import { closeOcr } from './ocr.ts';
 import { collectFuel, type FuelFeed } from './fuel.ts';
 import { collectStores, addChainHours } from './stores.ts';
 import { collectLtPrices, collectPlPrices, sane } from './prices.ts';
-import { listBiedronka, listKaufland, listLidl, type Leaflet } from './leaflets.ts';
+import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from './leaflets.ts';
+import { saveVisionCache } from './vision.ts';
+import { collectCrowd } from './crowd.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
 const outDir = new URL('../out/', import.meta.url);
@@ -48,7 +50,23 @@ for (const s of sources.filter((x: Source) => only !== 'fuel' && only !== 'store
   }
 }
 
+// Shopper-reported shelf prices near the border towns (Open Prices).
+if (!only || only === 'crowd') {
+  try {
+    const crowd = await collectCrowd();
+    results.push(...crowd);
+    statuses.push({ chain: 'openprices', ok: true, count: crowd.length, fetchedAt: new Date().toISOString() });
+    console.log(`✓ Open Prices: ${crowd.length} shopper prices near the border`);
+  } catch (e) {
+    const kept = prev.deals.filter((d) => d.crowd);
+    results.push(...kept);
+    statuses.push({ chain: 'openprices', ok: false, count: kept.length, fetchedAt: new Date().toISOString(), error: String((e as Error).message).slice(0, 200) });
+    console.log(`✗ Open Prices: ${(e as Error).message} (kept ${kept.length})`);
+  }
+}
+
 await closeOcr();
+if (!only || only === 'biedronka' || only === 'kaufland') saveVisionCache(seenImages);
 
 // Leaflets for the in-app reader (images stay on the retailers' servers).
 const leaflets: Leaflet[] = [];

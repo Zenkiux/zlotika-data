@@ -173,6 +173,7 @@ function lines(words: Word[]): Line[] {
 }
 
 interface Price { value: number; x: number; y: number; w: number; h: number; ctx: string; refined?: boolean }
+let supMax = 0.75;
 function prices(digits: Word[], textLines: Line[]): Price[] {
   const ds = digits.filter((d) => d.conf >= 40 && /\d/.test(d.text));
   const used = new Set<Word>();
@@ -187,7 +188,7 @@ function prices(digits: Word[], textLines: Line[]): Price[] {
     if (/^\d{1,3}$/.test(t)) {
       // Superscript cents: a 2-digit token, smaller, just right of and level with the top.
       const sup = ds.find((s) => !used.has(s) && s !== d && /^\d{2}$/.test(s.text.replace(/\D/g, '')) &&
-        s.h < d.h * 0.75 && s.h > d.h * 0.2 && s.x >= d.x + d.w - d.h * 0.2 && s.x - (d.x + d.w) < d.h * 0.7 &&
+        s.h < d.h * supMax && s.h > d.h * 0.2 && s.x >= d.x + d.w - d.h * 0.2 && s.x - (d.x + d.w) < d.h * 0.7 &&
         s.y >= d.y - d.h * 0.25 && s.y < d.y + d.h * 0.45);
       if (sup) {
         out.push({ value: +`${t}.${sup.text.replace(/\D/g, '')}`, x: d.x, y: d.y, w: sup.x + sup.w - d.x, h: d.h, ctx: lineAt(d.x, d.y + d.h / 2, d.h) });
@@ -219,7 +220,7 @@ export function interpret(words: Word[], digits: Word[], pageW: number, side: Na
   const refs = ps.filter((p) => isRef(p.ctx) || p.h < maxH * 0.45);
   const nameLines = ls.filter((l) => {
     const ws = l.words.filter((w) => LETTERS.test(w.text) && w.text.length >= 3 && !STOP.has(w.text.toLowerCase().replace(/[.,:]$/, '')));
-    const brandNoise = /KART|APK|MOJA|BIEDRON|MIESZAJ|DOWOLN|SUPERCENA|TANIEJ|GRATIS|ZAKUPIE|SZTUK|LIMIT|PONIEDZ|SOBOT/i;
+    const brandNoise = /KART|APK|MOJA|BIEDRON|MIESZAJ|DOWOLN|SUPERCEN|TANIEJ|GRATIS|ZAKUPIE|SZTUK|LIMIT|PONIEDZ|SOBOT|^DRUGI|NISKIE CENY|^ZAWSZE|^KUP\b/i;
     return ws.length >= 1 && ws.reduce((a, w) => a + w.text.length, 0) >= 4 && !isRef(l.text) && !/^\d/.test(l.text) && !brandNoise.test(l.text);
   });
   const nearText = (p: { x: number; y: number }, r: number) => ls.filter((l) => Math.abs(l.y - p.y) < r && Math.abs(l.x - p.x) < r * 1.6).map((l) => l.text).join(' ');
@@ -290,6 +291,50 @@ export function interpret(words: Word[], digits: Word[], pageW: number, side: Na
   // One deal per (name, price).
   const seen = new Set<string>();
   return deals.filter((d) => !seen.has(`${d.name}|${d.price}`) && !!seen.add(`${d.name}|${d.price}`));
+}
+
+/** PaddleOCR output (one box per text line) → the word/digit boxes interpret() expects. */
+export interface PaddleLine { text: string; box: [number, number, number, number]; conf: number }
+export function interpretPaddle(lines: PaddleLine[], pageW: number, side: NameSide = 'left'): PageDeal[] {
+  const words: Word[] = [];
+  const digits: Word[] = [];
+  const perKg = new Set<number>();
+  lines.forEach((l, i) => {
+    const [x, y, w, h] = l.box;
+    const conf = Math.round(l.conf * 100);
+    let t = l.text.trim().replace(/^(\d{3,4})\/$/, '$1');
+    if (!t) return;
+    // Big shelf prices come out as one run of digits ("1499" = 14,99 zł; "999" = 9,99 zł),
+    // since the grosze are printed as superscript.
+    if (/^\d{3,4}$/.test(t) && h > pageW * 0.045) {
+      t = `${t.slice(0, -2)},${t.slice(-2)}`;
+      const unit = lines.find((u) => /^\/\s*kg$/i.test(u.text.trim()) && u.box[0] >= x + w * 0.6 && u.box[0] < x + w + h && Math.abs(u.box[1] + u.box[3] - (y + h)) < h * 0.5);
+      if (unit) perKg.add(Number(t.replace(',', '.')));
+    }
+    if (/^\d{1,3}(,\d{2})?$/.test(t)) {
+      digits.push({ text: t, x, y, w, h, conf, line: `P${i}` });
+      return;
+    }
+    // A bare unit mark beside a big price ("/kg", "/szt.") belongs to that price; as a word
+    // it would make the price look like a small per-unit reference.
+    if (/^\/\s*(kg|szt\.?|zł|op\.?)$/i.test(t)) return;
+    // Spread the line's words across its box in proportion to their length.
+    const parts = t.split(/\s+/).filter(Boolean);
+    const total = parts.reduce((a, p) => a + p.length + 1, 0) || 1;
+    let cx = x;
+    for (const p of parts) {
+      const pw = (w * (p.length + 1)) / total;
+      words.push({ text: p, x: cx, y, w: pw, h, conf, line: `P${i}` });
+      cx += pw;
+    }
+  });
+  supMax = 0.95;
+  try {
+    // Per-unit references read this way are unreliable; keep only per-kg shelf prices.
+    return interpret(words, digits, pageW, side).map((d) => (perKg.has(d.price) ? { ...d, unit: 'kg', unitPrice: d.price } : { ...d, unit: undefined, unitPrice: undefined }));
+  } finally {
+    supMax = 0.75;
+  }
 }
 
 export async function readPage(img: Buffer, side: NameSide = 'left'): Promise<PageDeal[]> {

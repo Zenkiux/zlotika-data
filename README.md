@@ -28,6 +28,12 @@ Collects publicly visible promotions from Polish retailer websites once a day an
 
 **Shops and hours** (`out/stores.json`, `src/stores.ts`): shops near the border from OpenStreetMap (ODbL), with hours replaced by the chains' own store locators where a shop matches (`src/locators/`: Lidl, Aldi, Rossmann, Pepco, Dino, Netto). Biedronka blocks automated access, so its shops keep OpenStreetMap hours or a chain-typical estimate.
 
+**Leaflet reading** (Biedronka, Kaufland): each page is read once by Google's Gemini vision model (free tier; key in the optional `GEMINI_API_KEY` repository secret) and cached in `out/vision-cache.json`. Pages it doesn't reach fall back to PaddleOCR (`tools/paddle_page.py`, open source), then Tesseract. Toy and home catalogues are skipped.
+
+**Shopper prices** (`src/crowd.ts`): prices photographed on shelf tags or receipts near Suwałki, Augustów, Sejny and Białystok, from [Open Prices](https://prices.openfoodfacts.org) (Open Food Facts, ODbL). Zlotika users can add to it from the app.
+
+**Fuel** (`out/fuel.json`): EU Weekly Oil Bulletin (LT, PL), e-petrol.pl (PL, when reachable), and Poland's **legal maximum pump price**, published daily by the Minister of Energy in Monitor Polski (read through the Sejm ELI open-data API). Lithuanian per-station prices (LEA) are published on SharePoint, whose robots.txt disallows bots, so they are not collected until LEA offers a bot-friendly link.
+
 Not collected yet:
 - **Dino, Netto:** no shop in Suwałki.
 
