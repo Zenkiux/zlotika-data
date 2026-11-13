@@ -279,3 +279,93 @@ export async function collectPlPrices(opts: { frisco: boolean; rossmann: boolean
   }
   return out;
 }
+
+// ── Lithuania: Rimi online shop (rimi.lt/e-parduotuve) ─────────────────────────
+// Category pages are allowed by robots.txt (only /search?q=* is not); each product tile
+// carries {"name":"ROKIŠKIO sviestas, 82 % rieb., 200 g","price":2.79}. Categories come
+// from the shop's own sitemap, matched to our vocabulary by name.
+const RIMI = 'https://www.rimi.lt/e-parduotuve';
+const ltUnits: Record<string, [string, number]> = { ml: ['l', 1e-3], l: ['l', 1], g: ['kg', 1e-3], kg: ['kg', 1], vnt: ['units', 1] };
+
+/** "…, 200 g" / "…, 1,5 l" / "…, 4 x 100 g" / "…, 10 vnt." → amount in kg / l / pieces. */
+export function ltQty(name: string): { unit: string; qty: number } | null {
+  const n = name.toLowerCase().replace(/(\d),(\d)/g, '$1.$2');
+  const m = n.match(/(?:(\d+)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*(ml|l|g|kg|vnt)\b\.?(?!.*\d+(?:\.\d+)?\s*(?:ml|l|g|kg|vnt)\b)/);
+  if (!m) return null;
+  const [unit, f] = ltUnits[m[3]];
+  const qty = (m[1] ? Number(m[1]) : 1) * Number(m[2]) * f;
+  return qty > 0 ? { unit, qty } : null;
+}
+
+let rimiCats: string[] | null = null;
+async function rimiCategories(): Promise<string[]> {
+  if (rimiCats) return rimiCats;
+  const xml = await getText(`${RIMI}/sitemaps/categories/siteMap_rimiLtSite_Category_lt_1.xml`, { accept: 'application/xml' });
+  return (rimiCats = [...new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]))]);
+}
+
+export async function rimiCategory(url: string): Promise<Product[]> {
+  const html = await getText(`${url}?pageSize=100`);
+  const out: Product[] = [];
+  for (const m of html.matchAll(/data-gtm-eec-product='([^']+)'/g)) {
+    try {
+      const p = JSON.parse(m[1]) as { name: string; price: number; category?: string };
+      if (!(p.price > 0)) continue;
+      const q = ltQty(p.name);
+      out.push({ name: p.name, price: p.price, unitPrice: q ? Math.round((p.price / q.qty) * 100) / 100 : null, unit: q?.unit ?? null, category: p.category ?? url, url });
+    } catch { /* skip odd tile */ }
+  }
+  return out;
+}
+
+/** Rimi categories whose last path segments contain the term's words (by stem). */
+async function rimiCatsFor(q: string): Promise<string[]> {
+  const keys = words(q).filter((w) => w.length >= 3).map(stem);
+  if (!keys.length) return [];
+  const cats = await rimiCategories();
+  const scored = cats
+    .map((u) => {
+      const segs = u.replace(/\/c\/[^/]+$/, '').split('/').slice(-1).join(' '); // the leaf category only
+      const ws = words(segs.replace(/-/g, ' '));
+      const hits = keys.filter((k) => ws.some((w) => w.startsWith(k))).length;
+      return { u, hits, depth: u.split('/').length };
+    })
+    .filter((x) => x.hits === keys.length)
+    .sort((a, b) => b.depth - a.depth);
+  return [...new Set(scored.map((x) => x.u))].slice(0, 2);
+}
+
+export async function collectRimiPrices(log = console.log): Promise<Record<string, RefPrice>> {
+  const out: Record<string, RefPrice> = {};
+  for (const t of terms) {
+    const tw = tweakFor(t);
+    if (tw.skip) continue;
+    const q = tw.lt ?? t.lt;
+    try {
+      const urls = await rimiCatsFor(q);
+      if (!urls.length) continue;
+      const ps: Product[] = [];
+      for (const u of urls) ps.push(...(await rimiCategory(u)));
+      // The product name must itself say what it is ("… sviestas, 200 g"), as with Barbora.
+      const ref = summarise('Rimi', relevant(q, ps, tw.not), false);
+      if (ref) out[t.pl] = ref;
+    } catch (e) {
+      log(`  rimi ${t.lt}: ${(e as Error).message}`);
+      if (/HTTP (403|429)/.test((e as Error).message)) throw e;
+    }
+  }
+  if (Object.keys(out).length < 10) throw new Error(`only ${Object.keys(out).length} Rimi prices`);
+  return out;
+}
+
+/** Keep a second shop's reference only when it agrees with Barbora's on unit and roughly on price:
+ *  a 20× difference is a different product (goat cheese for "milk"), not a cheaper shop. */
+export function agree(other: Record<string, RefPrice>, base: Record<string, RefPrice>): Record<string, RefPrice> {
+  const out: Record<string, RefPrice> = {};
+  for (const [k, r] of Object.entries(other)) {
+    const b = base[k];
+    if (b && (b.unit !== r.unit || r.unitMedian / b.unitMedian > 2.5 || r.unitMedian / b.unitMedian < 0.4)) continue;
+    out[k] = r;
+  }
+  return out;
+}

@@ -4,7 +4,7 @@ import { sources } from './sources/index.ts';
 import { closeOcr } from './ocr.ts';
 import { collectFuel, type FuelFeed } from './fuel.ts';
 import { collectStores, addChainHours } from './stores.ts';
-import { collectLtPrices, collectPlPrices, sane } from './prices.ts';
+import { agree, collectLtPrices, collectPlPrices, collectRimiPrices, sane } from './prices.ts';
 import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from './leaflets.ts';
 import { saveVisionCache } from './vision.ts';
 import { collectCrowd } from './crowd.ts';
@@ -115,13 +115,22 @@ if (!only || only === 'prices' || only === 'prices-pl') {
   } catch (e) {
     console.log(`✗ LT prices: ${(e as Error).message} (kept ${Object.keys(lt).length})`);
   }
+  // Rimi online shop: per-chain Lithuanian prices (Barbora above = Maxima).
+  let ltRimi = prevP.ltRimi ?? {};
+  if (only !== 'prices-pl') try {
+    if (cfgP.priceSources?.rimi === false) throw new Error('switched off in config.json');
+    ltRimi = agree(await collectRimiPrices(), lt);
+    console.log(`✓ LT Rimi prices: ${Object.keys(ltRimi).length}`);
+  } catch (e) {
+    console.log(`✗ LT Rimi prices: ${(e as Error).message} (kept ${Object.keys(ltRimi).length})`);
+  }
   try {
     pl = sane(await collectPlPrices({ frisco: cfgP.priceSources?.frisco === true, rossmann: cfgP.priceSources?.rossmann !== false }), lt);
     console.log(`✓ PL prices: ${Object.keys(pl).length}`);
   } catch (e) {
     console.log(`✗ PL prices: ${(e as Error).message} (kept ${Object.keys(pl).length})`);
   }
-  writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), lt, pl }));
+  writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), lt, ltRimi, pl }));
 }
 if (only === 'fuel' || only === 'stores' || only?.startsWith('prices')) process.exit(0);
 
