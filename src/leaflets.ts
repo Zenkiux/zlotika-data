@@ -174,6 +174,10 @@ export async function ocrLeaflets(leaflets: Leaflet[], side: NameSide, maxPages:
       }
     }
     const res = spawnSync(py, [new URL('../tools/paddle_page.py', import.meta.url).pathname, ...files.filter(Boolean)], { encoding: 'utf8', maxBuffer: 1 << 28 });
+    if (res.status !== 0 || res.error) {
+      console.log(`  PaddleOCR failed (status ${res.status}${res.error ? `, ${res.error.message}` : ''}):`);
+      console.log((res.stderr ?? '').split('\n').filter((l) => l.trim()).slice(-12).map((l) => `    ${l}`).join('\n'));
+    }
     const widths = new Map<string, number>();
     for (const f of files.filter(Boolean)) widths.set(f, (await sharp(f).metadata()).width ?? 1000);
     const byFile = new Map<string, PaddleLine[]>();
