@@ -3,11 +3,12 @@
 // out/translations.json, published with the feed, so a daily run only sends new names.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { modelList } from './vision.ts';
+import { terms } from './prices.ts';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const KEY = process.env.GEMINI_API_KEY ?? '';
 const cacheUrl = new URL('../out/translations.json', import.meta.url);
-type Tr = { lt: string; en: string };
+type Tr = { lt: string; en: string; term?: string }; // term = the app's shopping word (terms.json pl) or ''
 let cache: Record<string, Tr> = {};
 try {
   if (existsSync(cacheUrl)) cache = JSON.parse(readFileSync(cacheUrl, 'utf8'));
@@ -19,11 +20,14 @@ For each input give:
 - en: the same in English.
 Rules: keep brand names as they are; translate the product type; keep sizes/quantities (g, kg, ml, l, szt. → vnt./pcs);
 drop leaflet noise like "Cena za 1 szt.", "promocja", "-40%"; never invent details that are not in the input.
+- term: if the product IS one of these everyday shopping items, copy that item's text exactly; otherwise "".
+  Only the item itself counts: a toy "Jajko niespodzianka" is not "Jajka"; "Chleb z masłem" is not "Masło"; chocolate milk drink is not "Mleko".
+  Items: ${JSON.stringify(terms.map((t) => t.pl))}
 Return one object per input, in the same order, with the field "pl" equal to the input text.`;
 
 const SCHEMA = {
   type: 'ARRAY',
-  items: { type: 'OBJECT', properties: { pl: { type: 'STRING' }, lt: { type: 'STRING' }, en: { type: 'STRING' } }, required: ['pl', 'lt', 'en'] },
+  items: { type: 'OBJECT', properties: { pl: { type: 'STRING' }, lt: { type: 'STRING' }, en: { type: 'STRING' }, term: { type: 'STRING' } }, required: ['pl', 'lt', 'en', 'term'] },
 };
 
 async function translateBatch(names: string[]): Promise<boolean> {
@@ -53,10 +57,11 @@ async function translateBatch(names: string[]): Promise<boolean> {
       try {
         const j: any = await res.json();
         const text = j.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '[]';
-        const out = JSON.parse(text) as { pl: string; lt: string; en: string }[];
+        const out = JSON.parse(text) as { pl: string; lt: string; en: string; term?: string }[];
+        const known = new Set(terms.map((t) => t.pl));
         out.forEach((o, i) => {
           const pl = names.includes(o.pl) ? o.pl : names[i];
-          if (pl && o.lt?.trim() && o.en?.trim()) cache[pl] = { lt: o.lt.trim(), en: o.en.trim() };
+          if (pl && o.lt?.trim() && o.en?.trim()) cache[pl] = { lt: o.lt.trim(), en: o.en.trim(), term: known.has(o.term ?? '') ? o.term : '' };
         });
         return true;
       } catch {
@@ -68,14 +73,14 @@ async function translateBatch(names: string[]): Promise<boolean> {
 }
 
 /** Adds nameLt / nameEn to every deal whose Polish name has (or gets) a translation. */
-export async function translateDeals(deals: { name: string; nameLt?: string; nameEn?: string }[], log = console.log): Promise<void> {
-  const todo = [...new Set(deals.map((d) => d.name))].filter((n) => !cache[n]);
+export async function translateDeals(deals: { name: string; nameLt?: string; nameEn?: string; term?: string }[], log = console.log): Promise<void> {
+  const todo = [...new Set(deals.map((d) => d.name))].filter((n) => !cache[n] || cache[n].term === undefined);
   if (KEY && todo.length) {
     const max = Number(process.env.TRANSLATE_MAX ?? 4000);
     const list = todo.slice(0, max);
     let ok = 0;
-    for (let i = 0; i < list.length; i += 80) {
-      if (await translateBatch(list.slice(i, i + 80))) ok++;
+    for (let i = 0; i < list.length; i += 60) {
+      if (await translateBatch(list.slice(i, i + 60))) ok++;
       else break; // quota or outage: keep what we have, try again tomorrow
       await new Promise((r) => setTimeout(r, 4500)); // stay under the free per-minute limit
     }
@@ -88,6 +93,7 @@ export async function translateDeals(deals: { name: string; nameLt?: string; nam
     if (t) {
       d.nameLt = t.lt;
       d.nameEn = t.en;
+      if (t.term) d.term = t.term;
     }
   }
   // Keep only names still in use, so the cache doesn't grow forever.
