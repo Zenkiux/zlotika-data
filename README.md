@@ -22,7 +22,8 @@ Collects publicly visible promotions from Polish retailer websites once a day an
 **Leaflets:** `out/leaflets.json` lists the current Biedronka, Kaufland and Lidl leaflets, with page image URLs on the retailers' own servers, for the in-app reader. OCR deals carry `ocr: true` plus the leaflet and page, so the app shows the source page next to every automatically read price.
 
 **Reference prices** (`out/prices.json`, `src/prices.ts`): usual prices per kg, litre or piece for the app's item vocabulary (`src/terms.json`).
-- Lithuania: Barbora.lt search pages (robots.txt allows search).
+- Lithuania: Barbora.lt search pages (robots.txt allows search) and Rimi e-shop category pages.
+- Lithuania, this week's promotions (`ltPromo`): Lidl LT category pages, and the text layer of the IKI and Norfa leaflet PDFs (each product line carries its €/kg price, so no OCR). A promo is kept only when it is at or below ~1.3× Maxima's usual price for that item.
 - Poland: Rossmann.pl product search (regular, non-promo prices).
 - Frisco.pl: built but **off** (`priceSources.frisco: false`), because its robots.txt offers the feed for personal, non-commercial use.
 
@@ -56,7 +57,7 @@ Node 24 or newer, with `sharp` and `tesseract.js` for leaflet OCR. `--max-http-h
 Edit `config.json` and push. The app picks it up on its next refresh:
 ```json
 { "collectedEnabled": false, "leafletsEnabled": false, "disabledChains": ["lidl"],
-  "priceSources": { "barbora": false, "rossmann": false, "frisco": false } }
+  "priceSources": { "barbora": false, "rossmann": false, "frisco": false, "rimi": false, "lidl": false, "iki": false, "norfa": false } }
 ```
 
 ## Schedule

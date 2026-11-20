@@ -13,6 +13,7 @@ export type Store = {
   address?: string;
   hours?: string; // OSM opening_hours syntax
   hoursFrom?: 'chain' | 'osm'; // the chain's own store locator, or OpenStreetMap
+  country?: 'LT' | 'PL';
 };
 
 // The app's destinations (lib/data/geo.dart).
@@ -35,14 +36,10 @@ const dist = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) 
   return Math.sqrt(x * x + y * y) * 6371000;
 };
 
-export async function collectStores(): Promise<Store[]> {
-  const parts = towns
-    .map((t) => {
-      const at = `(around:${t.r},${t.lat},${t.lon})`;
-      return `nwr${at}["shop"]["brand"];nwr${at}["amenity"="fuel"];`;
-    })
-    .join('');
-  const q = `[out:json][timeout:90];(${parts});out center tags;`;
+
+type OsmElement = { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> };
+
+async function overpass(q: string): Promise<{ elements: OsmElement[] }> {
   let res: Response | undefined;
   const errors: string[] = [];
   for (const url of [...ENDPOINTS, ...ENDPOINTS]) {
@@ -62,7 +59,18 @@ export async function collectStores(): Promise<Store[]> {
     await new Promise((r) => setTimeout(r, 5000));
   }
   if (!res) throw new Error(`Overpass: ${errors.join('; ')}`);
-  const j = (await res.json()) as { elements: { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] };
+  return (await res.json()) as { elements: OsmElement[] };
+}
+
+export async function collectStores(): Promise<Store[]> {
+  const parts = towns
+    .map((t) => {
+      const at = `(around:${t.r},${t.lat},${t.lon})`;
+      return `nwr${at}["shop"]["brand"];nwr${at}["amenity"="fuel"];`;
+    })
+    .join('');
+  const q = `[out:json][timeout:90];(${parts});out center tags;`;
+  const j = await overpass(q);
   const out: Store[] = [];
   const seen = new Set<string>();
   for (const e of j.elements) {
@@ -93,6 +101,7 @@ export async function collectStores(): Promise<Store[]> {
       lon: Math.round(lon * 1e6) / 1e6,
       address,
       hours: t.opening_hours?.trim() || undefined,
+      country: 'PL',
     });
   }
   if (out.length < 10) throw new Error(`only ${out.length} stores`);
@@ -137,4 +146,31 @@ export async function addChainHours(stores: Store[], log = console.log): Promise
     }
   }
   for (const s of stores) if (s.hours && !s.hoursFrom) s.hoursFrom = 'osm';
+}
+
+/** Fuel stations along the drive, both sides of the border (south Lithuania → north-east Poland). */
+export async function collectRouteFuel(known: Set<string>): Promise<Store[]> {
+  const boxes: { country: 'LT' | 'PL'; bbox: string }[] = [
+    { country: 'LT', bbox: '53.85,22.6,55.0,25.45' },
+    { country: 'PL', bbox: '53.0,22.3,54.45,23.9' },
+  ];
+  const out: Store[] = [];
+  for (const b of boxes) {
+    const q = `[out:json][timeout:120];area["ISO3166-1"="${b.country}"][admin_level=2]->.c;nwr["amenity"="fuel"](area.c)(${b.bbox});out center tags;`;
+    const j = await overpass(q);
+    for (const e of j.elements) {
+      const t = e.tags ?? {};
+      const lat = e.lat ?? e.center?.lat;
+      const lon = e.lon ?? e.center?.lon;
+      if (lat == null || lon == null) continue;
+      const id = `osm:${e.type[0]}${e.id}`;
+      if (known.has(id)) continue;
+      known.add(id);
+      const brand = (t.brand ?? t.name ?? (b.country === 'LT' ? 'Degalinė' : 'Stacja paliw')).trim();
+      const street = [t['addr:street'] ?? t['addr:place'], t['addr:housenumber']].filter(Boolean).join(' ');
+      const address = [street, t['addr:city']].filter(Boolean).join(', ') || undefined;
+      out.push({ id, chain: 'fuel', brand, name: t.name && t.name !== brand ? t.name : undefined, town: 'route', lat: Math.round(lat * 1e6) / 1e6, lon: Math.round(lon * 1e6) / 1e6, address, hours: t.opening_hours?.trim() || undefined, country: b.country });
+    }
+  }
+  return out;
 }

@@ -46,14 +46,14 @@ export async function allowed(url: string) {
 }
 
 let last = 0;
-export async function get(url: string, opts: { accept?: string; headers?: Record<string, string> } = {}) {
+export async function get(url: string, opts: { accept?: string; headers?: Record<string, string>; timeoutMs?: number } = {}) {
   if (!(await allowed(url))) throw new Error(`robots.txt disallows ${url}`);
   const wait = Math.max(0, last + 1500 - Date.now()); // ≥1.5 s between requests
   if (wait) await new Promise((r) => setTimeout(r, wait));
   last = Date.now();
   const res = await fetch(url, {
     headers: { 'User-Agent': UA, Accept: opts.accept ?? 'text/html,application/json;q=0.9,*/*;q=0.8', 'Accept-Language': 'pl-PL,pl;q=0.9', ...opts.headers },
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 20000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res;

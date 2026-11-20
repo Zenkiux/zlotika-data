@@ -46,9 +46,9 @@ export type RefPrice = {
 
 export type Product = { name: string; price: number; unitPrice: number | null; unit: string | null; category: string; url: string };
 
-const fold = (s: string) =>
+export const fold = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
-const words = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
+export const words = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
 // Lithuanian and Polish change word endings (kava/kavos, masło/masła): compare the first part.
 const stem = (w: string) => (/^\d+$/.test(w) ? w : w.slice(0, Math.max(3, Math.min(6, w.length - 2))));
 
@@ -129,14 +129,14 @@ export function relevant(query: string, products: Product[], not: string[] = [])
 }
 
 /** popular = the shop ranks by popularity (Barbora): use its top results; otherwise use all. */
-export function summarise(source: string, ps: Product[], popularOrder = true): RefPrice | null {
+export function summarise(source: string, ps: Product[], popularOrder = true, minN = 4): RefPrice | null {
   const withUnit = ps.filter((p) => p.unitPrice && p.unit && ['kg', 'l', 'units'].includes(p.unit));
-  if (withUnit.length < 2) return null;
+  if (withUnit.length < Math.min(2, minN)) return null;
   const unitCount = new Map<string, number>();
   withUnit.forEach((p) => unitCount.set(p.unit!, (unitCount.get(p.unit!) ?? 0) + 1));
   const unit = [...unitCount.entries()].sort((a, b) => b[1] - a[1])[0][0] as RefPrice['unit'];
   const same = withUnit.filter((p) => p.unit === unit);
-  if (!popularOrder && same.length < 4) return null; // too few to call it 'usual'
+  if (!popularOrder && same.length < minN) return null; // too few to call it 'usual'
   // "Typical" = the shop's top-ranked products (what people actually buy), not niche extremes.
   const popular = popularOrder ? same.slice(0, 8) : same;
   const um = median(popular.map((p) => p.unitPrice!));

@@ -3,7 +3,8 @@ import type { Deal, Source } from './types.ts';
 import { sources } from './sources/index.ts';
 import { closeOcr } from './ocr.ts';
 import { collectFuel, type FuelFeed } from './fuel.ts';
-import { collectStores, addChainHours } from './stores.ts';
+import { collectStores, addChainHours, collectRouteFuel } from './stores.ts';
+import { ikiProducts, lidlLtProducts, norfaProducts, promoRefs } from './ltpromo.ts';
 import { agree, collectLtPrices, collectPlPrices, collectRimiPrices, sane } from './prices.ts';
 import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from './leaflets.ts';
 import { saveVisionCache } from './vision.ts';
@@ -76,10 +77,13 @@ for (const [chain, list] of [['biedronka', listBiedronka], ['kaufland', listKauf
   if (only && only !== chain && only !== 'leaflets') continue;
   try {
     const ls = await list();
+    // Kaufland's list is sometimes empty between weekly leaflets: keep the ones still running.
+    if (!ls.length) throw new Error('empty list');
     leaflets.push(...ls);
     console.log(`✓ leaflets ${chain}: ${ls.length} (${ls.reduce((a, l) => a + l.pages.length, 0)} pages)`);
   } catch (e) {
-    const kept = prevLeaf.leaflets.filter((l) => l.chain === chain);
+    const day = new Date().toISOString().slice(0, 10);
+    const kept = prevLeaf.leaflets.filter((l) => l.chain === chain && (!l.validTo || l.validTo >= day));
     leaflets.push(...kept);
     console.log(`✗ leaflets ${chain}: ${(e as Error).message} (kept ${kept.length})`);
   }
@@ -95,6 +99,13 @@ if (!only || only === 'stores') {
   try {
     const stores = await collectStores();
     await addChainHours(stores);
+    try {
+      const route = await collectRouteFuel(new Set(stores.map((x) => x.id)));
+      stores.push(...route);
+      console.log(`  ✓ route fuel stations: ${route.length}`);
+    } catch (e) {
+      console.log(`  ✗ route fuel stations: ${(e as Error).message}`);
+    }
     writeFileSync(new URL('stores.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), attribution: '© OpenStreetMap contributors (ODbL)', stores }));
     console.log(`✓ stores: ${stores.length}`);
   } catch (e) {
@@ -124,13 +135,25 @@ if (!only || only === 'prices' || only === 'prices-pl') {
   } catch (e) {
     console.log(`✗ LT Rimi prices: ${(e as Error).message} (kept ${Object.keys(ltRimi).length})`);
   }
+  // Lidl LT, IKI, Norfa: this week's leaflet prices. A failed chain is left out (an old
+  // promo would be wrong), so the app falls back to Maxima for it.
+  const ltPromo: Record<string, Record<string, unknown>> = {};
+  if (only !== 'prices-pl') for (const [id, label, read] of [['lidl', 'Lidl', lidlLtProducts], ['iki', 'IKI', ikiProducts], ['norfa', 'Norfa', norfaProducts]] as const) {
+    try {
+      if (cfgP.priceSources?.[id] === false) throw new Error('switched off in config.json');
+      ltPromo[id] = promoRefs(label, await read(), lt);
+      console.log(`✓ LT ${label} leaflet prices: ${Object.keys(ltPromo[id]).length}`);
+    } catch (e) {
+      console.log(`✗ LT ${label} leaflet prices: ${(e as Error).message}`);
+    }
+  }
   try {
     pl = sane(await collectPlPrices({ frisco: cfgP.priceSources?.frisco === true, rossmann: cfgP.priceSources?.rossmann !== false }), lt);
     console.log(`✓ PL prices: ${Object.keys(pl).length}`);
   } catch (e) {
     console.log(`✗ PL prices: ${(e as Error).message} (kept ${Object.keys(pl).length})`);
   }
-  writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), lt, ltRimi, pl }));
+  writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), lt, ltRimi, ltPromo, pl }));
 }
 if (only === 'fuel' || only === 'stores' || only?.startsWith('prices')) process.exit(0);
 
