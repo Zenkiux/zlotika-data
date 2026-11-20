@@ -1,4 +1,4 @@
-# Quick run: translates the already published deals into Lithuanian/English and republishes
+# Quick run: refreshes fuel prices and translates the already published deals into Lithuanian/English and republishes
 # the same feed (a few minutes instead of the full nightly collection). The nightly run
 # translates new deals on its own; use this after changing the translation step.
 name: translate
@@ -28,6 +28,7 @@ jobs:
           done
           test -s out/deals.json
           cp config.json out/config.json
+      - run: node --max-http-header-size=131072 src/run.ts --only fuel   # fresh fuel prices too
       - run: node src/translate-run.ts
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

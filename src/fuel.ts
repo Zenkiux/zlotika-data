@@ -130,6 +130,25 @@ export async function collectPlCap(): Promise<FuelCap> {
 }
 
 /** Collects all sources; a failing source keeps last run's values. */
+/** Lithuania's daily averages from the energy agency (LEA): every working day stations report
+ *  prices by 10:00 and LEA publishes "vidutinė … kaina siekė X Eur/l" (ena.lt robots allow it). */
+async function collectLeaDaily() {
+  const listHtml = await (await get('https://www.ena.lt/dk-pr-pr-duomenys/', { accept: 'text/html' })).text();
+  const slugs = [...listHtml.matchAll(/href="(?:https:\/\/www\.ena\.lt\/)?Naujiena\/(kdk-(\d{8}))\/"/g)].map((m) => ({ slug: m[1], ymd: m[2] }));
+  if (!slugs.length) throw new Error('no LEA daily posts');
+  slugs.sort((a, b) => b.ymd.localeCompare(a.ymd));
+  const { slug, ymd } = slugs[0];
+  const html = await (await get(`https://www.ena.lt/Naujiena/${slug}/`, { accept: 'text/html' })).text();
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+  const avg = (word: string) => {
+    const m = text.match(new RegExp(`vidutinė ${word}\\S* kaina (?:siekė|sudarė|buvo) (\\d+,\\d+) Eur`, 'i'));
+    return m ? Number(m[1].replace(',', '.')) : undefined;
+  };
+  const diesel = avg('dyzelino'), pb95 = avg('benzino'), lpg = avg('SND') ?? avg('suskystintų');
+  if (!diesel || !pb95) throw new Error('LEA averages not found in post');
+  return { pb95, diesel, lpg, currency: 'EUR', date: `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`, source: 'LEA (Lietuvos energetikos agentūra)', url: `https://www.ena.lt/Naujiena/${slug}/` };
+}
+
 export async function collectFuel(prev?: FuelFeed): Promise<FuelFeed> {
   const feed: FuelFeed = { generatedAt: new Date().toISOString() };
   try {
@@ -141,6 +160,13 @@ export async function collectFuel(prev?: FuelFeed): Promise<FuelFeed> {
     feed.lt = prev?.lt;
     feed.plEu = prev?.plEu;
     console.log(`✗ fuel EU bulletin: ${(e as Error).message} (kept last)`);
+  }
+  try {
+    const lea = await collectLeaDaily();
+    feed.lt = lea; // daily station averages beat the weekly EU bulletin
+    console.log(`✓ fuel LEA ${lea.date}: LT ${lea.pb95}/${lea.diesel}/${lea.lpg} €`);
+  } catch (e) {
+    console.log(`✗ fuel LEA daily: ${(e as Error).message} (using EU bulletin)`);
   }
   try {
     const ep = await collectEPetrol();
