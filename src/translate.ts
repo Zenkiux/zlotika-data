@@ -79,7 +79,9 @@ export async function translateDeals(deals: { name: string; nameLt?: string; nam
     const max = Number(process.env.TRANSLATE_MAX ?? 4000);
     const list = todo.slice(0, max);
     let ok = 0;
-    for (let i = 0; i < list.length; i += 60) {
+    // Time budget so the run always publishes what it has; the rest is done next run.
+    const until = Date.now() + Number(process.env.TRANSLATE_MINUTES ?? 18) * 60000;
+    for (let i = 0; i < list.length && Date.now() < until; i += 60) {
       if (await translateBatch(list.slice(i, i + 60))) ok++;
       else break; // quota or outage: keep what we have, try again tomorrow
       await new Promise((r) => setTimeout(r, 4500)); // stay under the free per-minute limit
