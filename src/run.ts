@@ -9,6 +9,7 @@ import { agree, collectLtPrices, collectPlPrices, collectRimiPrices, sane } from
 import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from './leaflets.ts';
 import { saveVisionCache } from './vision.ts';
 import { translateDeals } from './translate.ts';
+import { collectLtStations } from './ltfuel.ts';
 import { collectCrowd } from './crowd.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
@@ -94,6 +95,13 @@ const fuelPath = new URL('fuel.json', outDir);
 if (!only || only === 'fuel') {
   const prevFuel: FuelFeed | undefined = existsSync(fuelPath) ? JSON.parse(readFileSync(fuelPath, 'utf8')) : undefined;
   writeFileSync(fuelPath, JSON.stringify(await collectFuel(prevFuel)));
+  try {
+    const lt = await collectLtStations();
+    writeFileSync(new URL('ltfuel.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), source: 'Lietuvos energetikos agentūra (ena.lt)', ...lt }));
+    console.log(`✓ fuel LT stations: ${lt.stations.length} (LEA ${lt.updated})`);
+  } catch (e) {
+    console.log(`✗ fuel LT stations: ${(e as Error).message} (kept last)`);
+  }
 }
 // Shop locations + opening hours from OpenStreetMap (keeps last good file on failure).
 if (!only || only === 'stores') {
