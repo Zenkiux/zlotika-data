@@ -32,6 +32,13 @@ jobs:
       - run: node src/translate-run.ts
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: iPhone install files (latest app release)
+        env: { GH_TOKEN: ${{ github.token }} }
+        run: |
+          mkdir -p out/ios
+          gh release download --repo Zenkiux/zlotika --pattern '*.ipa' --pattern 'manifest.plist' -D out/ios --clobber || true
+          for f in out/ios/zlotika-*.ipa; do [ -e "$f" ] && mv "$f" out/ios/zlotika.ipa; done
+          cp app/ios-install.html out/ios/index.html
       - uses: actions/upload-pages-artifact@v3
         with: { path: out }
       - id: deploy
