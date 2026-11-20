@@ -10,6 +10,7 @@ import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from 
 import { saveVisionCache } from './vision.ts';
 import { translateDeals } from './translate.ts';
 import { collectLtStations } from './ltfuel.ts';
+import { collectPlFuel } from './plfuel.ts';
 import { collectCrowd } from './crowd.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
@@ -101,6 +102,12 @@ if (!only || only === 'fuel') {
     console.log(`✓ fuel LT stations: ${lt.stations.length} (LEA ${lt.updated})`);
   } catch (e) {
     console.log(`✗ fuel LT stations: ${(e as Error).message} (kept last)`);
+  }
+  try {
+    const pl = await collectPlFuel();
+    writeFileSync(new URL('plfuel.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), source: 'AutoCentrum.pl (drivers), cena-paliw.pl', ...pl }));
+  } catch (e) {
+    console.log(`✗ fuel PL stations: ${(e as Error).message} (kept last)`);
   }
 }
 // Shop locations + opening hours from OpenStreetMap (keeps last good file on failure).
