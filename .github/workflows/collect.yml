@@ -39,6 +39,7 @@ jobs:
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/stores.json" -o out/stores.json || true
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/prices.json" -o out/prices.json || true
           curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/vision-cache.json" -o out/vision-cache.json || true
+          curl -sf "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/translations.json" -o out/translations.json || true
           cp config.json out/config.json   # the off switch: edit config.json in the repo
       - run: node --max-http-header-size=131072 src/run.ts
         env:

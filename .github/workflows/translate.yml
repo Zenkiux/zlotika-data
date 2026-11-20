@@ -1,0 +1,37 @@
+# Quick run: translates the already published deals into Lithuanian/English and republishes
+# the same feed (a few minutes instead of the full nightly collection). The nightly run
+# translates new deals on its own; use this after changing the translation step.
+name: translate
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency: { group: pages, cancel-in-progress: false }
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: { name: github-pages, url: '${{ steps.deploy.outputs.page_url }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      - name: Download the published feed
+        run: |
+          mkdir -p out
+          base="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          for f in deals leaflets fuel stores prices vision-cache translations; do
+            curl -sf "$base/$f.json" -o "out/$f.json" || true
+          done
+          test -s out/deals.json
+          cp config.json out/config.json
+      - run: node src/translate-run.ts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: out }
+      - id: deploy
+        uses: actions/deploy-pages@v4

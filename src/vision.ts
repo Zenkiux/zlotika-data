@@ -40,7 +40,7 @@ let quotaHit = false;
 let models: string[] | null = null;
 const dead = new Set<string>();
 
-async function modelList(): Promise<string[]> {
+export async function modelList(): Promise<string[]> {
   if (models) return models;
   if (process.env.GEMINI_MODEL) return (models = process.env.GEMINI_MODEL.split(',').map((m) => (m.startsWith('models/') ? m : `models/${m}`)));
   const res = await fetch(`${API}/models?pageSize=200`, { headers: { 'x-goog-api-key': KEY } });

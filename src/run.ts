@@ -8,6 +8,7 @@ import { ikiProducts, lidlLtProducts, norfaProducts, promoRefs } from './ltpromo
 import { agree, collectLtPrices, collectPlPrices, collectRimiPrices, sane } from './prices.ts';
 import { listBiedronka, listKaufland, listLidl, seenImages, type Leaflet } from './leaflets.ts';
 import { saveVisionCache } from './vision.ts';
+import { translateDeals } from './translate.ts';
 import { collectCrowd } from './crowd.ts';
 
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : undefined;
@@ -160,6 +161,11 @@ if (only === 'fuel' || only === 'stores' || only?.startsWith('prices')) process.
 writeFileSync(prevLeafPath, JSON.stringify({ generatedAt: new Date().toISOString(), leaflets }));
 const today = new Date().toISOString().slice(0, 10);
 const live = results.filter((d) => !d.validTo || d.validTo >= today);
+try {
+  await translateDeals(live);
+} catch (e) {
+  console.log(`✗ translations: ${(e as Error).message}`);
+}
 writeFileSync(new URL('deals.json', outDir), JSON.stringify({ generatedAt: new Date().toISOString(), sources: statuses, deals: live }));
 // The off switch lives in the repo's config.json; publish it next to the feed.
 const cfg = new URL('../config.json', import.meta.url);
