@@ -60,7 +60,8 @@ jobs:
             git add last-run.txt && git commit -m "Keep nightly schedule alive ($(date -u +%F))" && git push
           fi
       - name: iPhone install files (latest app release)
-        env: { GH_TOKEN: ${{ github.token }} }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p out/ios
           gh release download --repo Zenkiux/zlotika --pattern '*.ipa' --pattern 'manifest.plist' -D out/ios --clobber || true
